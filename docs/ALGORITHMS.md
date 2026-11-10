@@ -4,23 +4,23 @@ The problem splits into three layers, and each needs its own algorithm:
 
 | Layer | Question | Implemented now | Upgrade path |
 |---|---|---|---|
-| **Perception** | What does the reference look like, and what does the canvas look like right now? | Marker homography + Lab color (`src/vision/vision.c`) | Lens-distortion correction, per-pixel lighting normalization |
-| **Planning** | Which strokes (path, width, color, order)? | Hertzmann layered strokes + greedy simulator acceptance (`src/planning/planner.c`) | Stroke optimization, learned stroke proposer (TinyML) |
-| **Actuation** | How must X/Y/Z/yaw move so the stroke on canvas matches the plan? | Spline + tangent yaw + pressure profile + paint-load model (`src/motion/motion.c`, `src/planning/brush_model.c`) | Learned inverse brush model, height-map compensation, speed-as-a-parameter |
+| **Perception** | What does the reference look like, and what does the canvas look like right now? | Marker homography + Lab color (`planner/vision/vision.c`) | Lens-distortion correction, per-pixel lighting normalization |
+| **Planning** | Which strokes (path, width, color, order)? | Hertzmann layered strokes + greedy simulator acceptance (`planner/planning/planner.c`) | Stroke optimization, learned stroke proposer (TinyML) |
+| **Actuation** | How must X/Y/Z/yaw move so the stroke on canvas matches the plan? | Spline + tangent yaw + pressure profile + paint-load model (`planner/motion/motion.c`, `planner/planning/brush_model.c`) | Learned inverse brush model, height-map compensation, speed-as-a-parameter |
 
 Feedback ties them together: **plan → paint → photograph → re-plan**. That loop matters most. Paint never does exactly what a simulator predicts (it flows, dries lighter or darker, goes translucent at the end of a load), so a cheap camera that keeps correcting will beat a clever open-loop planner.
 
 ---
 
-## 1. What's already running in `src/`
+## 1. What's already running in `planner/`
 
-### 1.1 Palette with k-means (unsupervised ML, on device)
-`src/vision/palette.c`: k-means++ in CIELAB on 8k sampled pixels gives `PALETTE_N` paint colors, sorted dark to light. Because the robot can't mix paint, *you* mix the pots, guided by the printed hex values and mixing hints.
+### 1.1 Palette with k-means (unsupervised ML)
+`planner/vision/palette.c`: k-means++ in CIELAB on 8k sampled pixels gives `PALETTE_N` paint colors, sorted dark to light. Because the robot can't mix paint, *you* mix the pots, guided by the printed hex values and mixing hints.
 - Lab is used because Euclidean distance in Lab is roughly perceptual difference (ΔE).
-- **Do next:** after you mix the pots, paint swatches and run `palette_measure()` on a photo. The simulator then uses the colors you actually mixed rather than the ones it asked for, which closes the biggest sim-to-real gap for almost no work.
+- **Do next:** after you mix the pots, paint a swatch of each and measure their real colors from a photo (not implemented yet: sample the center of each swatch in the rectified image). The simulator then uses the colors you actually mixed rather than the ones it asked for, which closes the biggest sim-to-real gap for almost no work.
 
 ### 1.2 Stroke planning: Hertzmann (1998), plus a greedy optimizer
-`src/planning/planner.c` implements *Painterly Rendering with Curved Brush Strokes of Multiple Sizes* (Hertzmann, SIGGRAPH 1998) with one important change:
+`planner/planning/planner.c` implements *Painterly Rendering with Curved Brush Strokes of Multiple Sizes* (Hertzmann, SIGGRAPH 1998) with one important change:
 
 1. **Coarse to fine layers.** Big brush first (24 mm), then 12 mm, then 5 mm. Each layer compares against the reference blurred to that brush's scale, so big brushes don't chase detail they can't render.
 2. **Seed** a stroke in every grid cell whose error is above the threshold, at the cell's worst pixel.
@@ -30,11 +30,11 @@ Feedback ties them together: **plan → paint → photograph → re-plan**. That
 
 With the host simulator on the test scene, mean ΔE goes 54.7 → 8.1 → 4.7 → 4.3 across the three layers, from about 2.3k strokes and 150 m of brush path.
 
-### 1.3 Brush model with on-device regression
-`src/planning/brush_model.c`: `width = w0 + k·depth` is fit by least squares from a calibration strip. Boot with the button held, and the robot paints lines at 6 press depths per brush, photographs them, measures the widths, and fits the model. The paint-load model `opacity = 1 − (used/capacity)^dry` decides when to re-dip, and the planner and the machine share that decision (`stroke_t.reload`), so the simulator and reality agree on when the brush is running dry.
+### 1.3 Brush model with a learned regression
+`planner/planning/brush_model.c`: `width = w0 + k·depth` is fit by least squares from a calibration strip. Run the planner with `--calibrate`, and the robot paints lines at 6 press depths per brush, photographs them, measures the widths, and fits the model. The paint-load model `opacity = 1 − (used/capacity)^dry` decides when to re-dip, and the planner and the machine share that decision (`stroke_t.reload`), so the simulator and reality agree on when the brush is running dry.
 
 ### 1.4 Closed loop
-With `CLOSED_LOOP=1`, before every layer the gantry parks, the camera photographs the canvas, and that photo *replaces* the simulated canvas. The next layer is planned against what is really on the canvas. Resuming after a power cut uses the same mechanism: re-photograph, re-plan the current layer, and continue.
+With `CLOSED_LOOP=1`, before every layer the gantry parks, the camera photographs the canvas, and that photo *replaces* the simulated canvas. The next layer is planned against what is really on the canvas.
 
 ---
 
@@ -43,7 +43,7 @@ With `CLOSED_LOOP=1`, before every layer the gantry parks, the camera photograph
 ### A. Close the loop more often (easy, high value)
 Photograph every ~100 strokes instead of every layer. Re-plan only the grid cells where photo and simulation disagree by more than ΔE 10 (that's the paint misbehaving). Cost: about 3 s per park-and-capture.
 
-### B. Stroke optimization by hill climbing (easy, MCU-friendly)
+### B. Stroke optimization by hill climbing (easy, cheap)
 After a stroke is grown, perturb its control points, width and color 20–50 times and keep the best score. This is the "Geometrize / primitive" approach. It runs in microseconds per try on the S3 because `score()` only touches the stroke's bounding box. Expect roughly 15–25% fewer strokes for the same error.
 
 ### C. Region fill for big flat areas (easy, big time saver on a 38" canvas)
@@ -53,12 +53,12 @@ For low-gradient regions of one palette color (sky, backgrounds), skip the many 
 Replace the round "stamp" in the simulator with the *real* stroke appearance. From calibration photos, cut out real strokes (start blob, body, dry tail) and build a small library indexed by (brush, depth, load). Rendering then pastes these textures. This is what **FRIDA** (Schaldenbrand et al., CMU, ICRA 2023) does to get a robot arm painting well: learn the stroke simulator from photos of the robot's own strokes.
 
 ### E. Learned stroke proposer (TinyML; the real "ML" upgrade)
-Train offline on a PC, then deploy a small int8 network on the ESP32-S3:
+The planner runs on the PC, so a learned model can run there too:
 - **Input:** a 32×32 patch of (reference − current canvas) in Lab, plus brush size.
 - **Output:** stroke parameters (start, 2 control points, end, width, palette index), or a direction field.
 - **Training:** use a *differentiable* stroke renderer (a tiny neural renderer as in **Learning to Paint**, Huang et al. ICCV 2019, or analytical as in **Stylized Neural Painting**, Zou et al. CVPR 2021, and **Paint Transformer**, Liu et al. ICCV 2021). Train with the same objective the greedy planner uses, then distill to a ~50–200 k-parameter CNN.
-- **Deploy:** ESP-DL or TensorFlow Lite Micro. 200 k int8 params is 200 KB of flash and a few ms per patch on the S3. Keep the greedy acceptance test on top: the network *proposes*, the simulator *verifies*. A bad prediction then costs nothing.
-- Don't run Paint Transformer itself on the MCU. It's ~11 M parameters and too slow even with PSRAM. Distillation is the point.
+- **Deploy:** call it from the planner (ONNX Runtime or a hand-written forward pass in C). Keep the greedy acceptance test on top: the network *proposes*, the simulator *verifies*. A bad prediction then costs nothing.
+- Paint Transformer itself (~11 M parameters) also runs fine on a laptop; distill it only if you later move planning onto an embedded board.
 
 ### F. Style controls (fun)
 Stroke length/curvature limits, jitter of color within the palette neighborhood, and a "minimum stroke length" give looser or tighter styles. Painting the edge-direction field from a *structure tensor* instead of the raw gradient gives smoother, more painterly flow.
@@ -99,7 +99,7 @@ A real stroke is not a constant-depth drag. `depth_at()` implements:
 Paint deposition per mm falls as speed rises. Slow gives opaque, wet, wide strokes; fast gives "dry brush" texture. Add `feed` to `stroke_t`, and let the planner pick slow for the first stroke after a dip (heavy paint) and fast for scumbling highlights. Measure it in calibration as a second regression input: `width = f(depth, speed)`.
 
 ### 3.5 Learned inverse brush model (upgrade)
-Generalize 1.3 into a small regression or MLP: **(target width, target opacity, curvature, paint used) → (depth, speed)**. Train it from a few hundred calibration strokes photographed by the robot. An MLP with 4→16→16→2 weights is trivially fast on the MCU and can be trained on device with plain SGD, or on a PC and pasted in as constants.
+Generalize 1.3 into a small regression or MLP: **(target width, target opacity, curvature, paint used) → (depth, speed)**. Train it from a few hundred calibration strokes photographed by the robot. An MLP with 4→16→16→2 weights is trivially fast and can be trained with plain SGD in the planner from the calibration photos.
 
 ### 3.6 Canvas sag / height map (do this before your first real painting)
 A 38" canvas sags several mm in the middle and is never flat. Put a microswitch on the spring-compliant brush slide so it trips when the brush touches. Use it as Marlin's Z probe and run `G29` bilinear leveling on a 5×5 grid. Marlin then compensates Z everywhere, and press depth means the same thing in the corners as in the center.

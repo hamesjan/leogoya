@@ -1,17 +1,10 @@
-# ---------------------------------------------------------------- ESP-IDF firmware
-# build output (also used by the host simulator Makefile)
+# ---------------------------------------------------------------- build output
+# build/firmware (STM32 .elf/.bin/.map) and build/planner (PC planner)
 build/
-# generated from sdkconfig.defaults by `idf.py set-target` / menuconfig;
-# put permanent settings in sdkconfig.defaults (tracked)
-sdkconfig
-sdkconfig.old
-# downloaded by the component manager from main/idf_component.yml
-managed_components/
-# NOTE: dependencies.lock is intentionally tracked (pins esp32-camera version)
 
-# ---------------------------------------------------------------- host simulator
+# ---------------------------------------------------------------- planner output
 sim_out/
-# images converted with tools/to_ppm.py (large, regenerate from the source jpg/png)
+# images converted with scripts/to_ppm.py (large, regenerate from the source jpg/png)
 *.ppm
 
 # ---------------------------------------------------------------- C tooling

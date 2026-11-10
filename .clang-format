@@ -1,0 +1,27 @@
+# C style for firmware/ and planner/. Rules: Allman braces on every block,
+# one variable per declaration (enforced by clang-tidy, see .clang-tidy). Apply with:
+#   clang-format -i $(git ls-files '*.c' '*.h')
+BasedOnStyle: LLVM
+Language: Cpp
+IndentWidth: 4
+ColumnLimit: 110
+BreakBeforeBraces: Allman
+# every if/else/for/while/do body gets braces, even one-liners
+InsertBraces: true
+PointerAlignment: Right
+
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+
+AlignConsecutiveMacros: Consecutive
+AlignTrailingComments: true
+Cpp11BracedListStyle: false
+SpaceAfterCStyleCast: false
+SortIncludes: Never
+ReflowComments: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
