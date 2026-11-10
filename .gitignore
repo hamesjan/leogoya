@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------- ESP-IDF firmware
+# build output (also used by the host simulator Makefile)
+build/
+# generated from sdkconfig.defaults by `idf.py set-target` / menuconfig;
+# put permanent settings in sdkconfig.defaults (tracked)
+sdkconfig
+sdkconfig.old
+# downloaded by the component manager from main/idf_component.yml
+managed_components/
+# NOTE: dependencies.lock is intentionally tracked (pins esp32-camera version)
+
+# ---------------------------------------------------------------- host simulator
+sim_out/
+# images converted with tools/to_ppm.py (large, regenerate from the source jpg/png)
+*.ppm
+
+# ---------------------------------------------------------------- C tooling
+*.o
+*.a
+*.d
+*.elf
+*.bin
+*.map
+# clangd / IDE indexing
+.cache/
+compile_commands.json
+.clangd
+
+# ---------------------------------------------------------------- 3D printing
+# slicer output is machine-specific; track the STL/STEP/3MF sources instead
+*.gcode
+*.bgcode
+*.ufp
+
+# ---------------------------------------------------------------- Python tools
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ---------------------------------------------------------------- spreadsheets / docs
+# Excel / LibreOffice lock files while hardware/leogoya_BOM.xlsx is open
+~$*
+.~lock.*#
+
+# ---------------------------------------------------------------- editors / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------- secrets
+# Wi-Fi credentials etc. if you add network features later
+secrets.h
+*.env
+.env
