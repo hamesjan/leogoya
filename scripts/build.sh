@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Build Leogoya.
 #
-#   scripts/build.sh               STM32 firmware + PC planner
+#   scripts/build.sh               STM32 firmware + PC simulator
 #   scripts/build.sh firmware      STM32 firmware only   -> build/firmware/leogoya.bin
-#   scripts/build.sh planner       PC planner only       -> build/planner/leogoya_planner
-#   scripts/build.sh run [x.ppm]   build the planner and paint (synthetic scene if no ppm)
+#   scripts/build.sh sim           PC simulator only     -> build/sim/leogoya_sim
+#   scripts/build.sh run [x.ppm]   build the simulator and paint into build/sim/out/
 #   scripts/build.sh flash         build + flash the Nucleo (USB drive copy or st-flash)
-#   scripts/build.sh clean         delete build/ and sim_out/
+#   scripts/build.sh clean         delete build/
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,18 +21,18 @@ build_firmware() {
     make --no-print-directory -C firmware
 }
 
-build_planner() {
-    log "building PC planner"
-    make --no-print-directory planner
+build_sim() {
+    log "building PC simulator"
+    make --no-print-directory sim
 }
 
 case "${1:-all}" in
-    all)      build_firmware; build_planner ;;
+    all)      build_firmware; build_sim ;;
     firmware) build_firmware ;;
-    planner)  build_planner ;;
+    sim)      build_sim ;;
     run)
-        build_planner
-        log "painting into sim_out/"
+        build_sim
+        log "painting into build/sim/out/"
         make --no-print-directory run REF="${2:-}"
         ;;
     flash)
@@ -41,8 +41,8 @@ case "${1:-all}" in
         make --no-print-directory -C firmware flash
         ;;
     clean)
-        log "removing build/ and sim_out/"
-        rm -rf build sim_out
+        log "removing build/"
+        rm -rf build
         ;;
     -h|--help|help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) fail "unknown command '$1' (try: scripts/build.sh help)" ;;

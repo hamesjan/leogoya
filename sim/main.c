@@ -1,5 +1,5 @@
 /*
- * main.c - planner entry point (runs on your laptop).
+ * main.c - simulator entry point (runs on your laptop).
  * Arguments: see hal/host/hal_host.c.
  */
 #include "app/app.h"

@@ -1,6 +1,6 @@
 /*
- * main.c - Leogoya controller firmware: a main loop that waits for commands
- * on the serial wire and runs them. See cmd.h for the protocol.
+ * main.c - Leogoya controller firmware. 
+    See cmd.h for the protocol.
  */
 #include "board.h"
 #include "cmd.h"
@@ -24,7 +24,7 @@ int main(void)
     out_nl();
 
     uint32_t last_blink_ms = 0;
-    for (;;)
+    while (1)
     {
         uint8_t byte;
         while (uart_getc(&byte))

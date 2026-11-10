@@ -4,23 +4,23 @@ The problem splits into three layers, and each needs its own algorithm:
 
 | Layer | Question | Implemented now | Upgrade path |
 |---|---|---|---|
-| **Perception** | What does the reference look like, and what does the canvas look like right now? | Marker homography + Lab color (`planner/vision/vision.c`) | Lens-distortion correction, per-pixel lighting normalization |
-| **Planning** | Which strokes (path, width, color, order)? | Hertzmann layered strokes + greedy simulator acceptance (`planner/planning/planner.c`) | Stroke optimization, learned stroke proposer (TinyML) |
-| **Actuation** | How must X/Y/Z/yaw move so the stroke on canvas matches the plan? | Spline + tangent yaw + pressure profile + paint-load model (`planner/motion/motion.c`, `planner/planning/brush_model.c`) | Learned inverse brush model, height-map compensation, speed-as-a-parameter |
+| **Perception** | What does the reference look like, and what does the canvas look like right now? | Marker homography + Lab color (`sim/vision/vision.c`) | Lens-distortion correction, per-pixel lighting normalization |
+| **Planning** | Which strokes (path, width, color, order)? | Hertzmann layered strokes + greedy simulator acceptance (`sim/planning/planner.c`) | Stroke optimization, learned stroke proposer (TinyML) |
+| **Actuation** | How must X/Y/Z/yaw move so the stroke on canvas matches the plan? | Spline + tangent yaw + pressure profile + paint-load model (`sim/motion/motion.c`, `sim/planning/brush_model.c`) | Learned inverse brush model, height-map compensation, speed-as-a-parameter |
 
 Feedback ties them together: **plan → paint → photograph → re-plan**. That loop matters most. Paint never does exactly what a simulator predicts (it flows, dries lighter or darker, goes translucent at the end of a load), so a cheap camera that keeps correcting will beat a clever open-loop planner.
 
 ---
 
-## 1. What's already running in `planner/`
+## 1. What's already running in `sim/`
 
 ### 1.1 Palette with k-means (unsupervised ML)
-`planner/vision/palette.c`: k-means++ in CIELAB on 8k sampled pixels gives `PALETTE_N` paint colors, sorted dark to light. Because the robot can't mix paint, *you* mix the pots, guided by the printed hex values and mixing hints.
+`sim/vision/palette.c`: k-means++ in CIELAB on 8k sampled pixels gives `PALETTE_N` paint colors, sorted dark to light. Because the robot can't mix paint, *you* mix the pots, guided by the printed hex values and mixing hints.
 - Lab is used because Euclidean distance in Lab is roughly perceptual difference (ΔE).
 - **Do next:** after you mix the pots, paint a swatch of each and measure their real colors from a photo (not implemented yet: sample the center of each swatch in the rectified image). The simulator then uses the colors you actually mixed rather than the ones it asked for, which closes the biggest sim-to-real gap for almost no work.
 
 ### 1.2 Stroke planning: Hertzmann (1998), plus a greedy optimizer
-`planner/planning/planner.c` implements *Painterly Rendering with Curved Brush Strokes of Multiple Sizes* (Hertzmann, SIGGRAPH 1998) with one important change:
+`sim/planning/planner.c` implements *Painterly Rendering with Curved Brush Strokes of Multiple Sizes* (Hertzmann, SIGGRAPH 1998) with one important change:
 
 1. **Coarse to fine layers.** Big brush first (24 mm), then 12 mm, then 5 mm. Each layer compares against the reference blurred to that brush's scale, so big brushes don't chase detail they can't render.
 2. **Seed** a stroke in every grid cell whose error is above the threshold, at the cell's worst pixel.
@@ -31,7 +31,7 @@ Feedback ties them together: **plan → paint → photograph → re-plan**. That
 With the host simulator on the test scene, mean ΔE goes 54.7 → 8.1 → 4.7 → 4.3 across the three layers, from about 2.3k strokes and 150 m of brush path.
 
 ### 1.3 Brush model with a learned regression
-`planner/planning/brush_model.c`: `width = w0 + k·depth` is fit by least squares from a calibration strip. Run the planner with `--calibrate`, and the robot paints lines at 6 press depths per brush, photographs them, measures the widths, and fits the model. The paint-load model `opacity = 1 − (used/capacity)^dry` decides when to re-dip, and the planner and the machine share that decision (`stroke_t.reload`), so the simulator and reality agree on when the brush is running dry.
+`sim/planning/brush_model.c`: `width = w0 + k·depth` is fit by least squares from a calibration strip. Run the simulator with `--calibrate`, and the robot paints lines at 6 press depths per brush, photographs them, measures the widths, and fits the model. The paint-load model `opacity = 1 − (used/capacity)^dry` decides when to re-dip, and the planner and the machine share that decision (`stroke_t.reload`), so the simulator and reality agree on when the brush is running dry.
 
 ### 1.4 Closed loop
 With `CLOSED_LOOP=1`, before every layer the gantry parks, the camera photographs the canvas, and that photo *replaces* the simulated canvas. The next layer is planned against what is really on the canvas.
@@ -53,11 +53,11 @@ For low-gradient regions of one palette color (sky, backgrounds), skip the many 
 Replace the round "stamp" in the simulator with the *real* stroke appearance. From calibration photos, cut out real strokes (start blob, body, dry tail) and build a small library indexed by (brush, depth, load). Rendering then pastes these textures. This is what **FRIDA** (Schaldenbrand et al., CMU, ICRA 2023) does to get a robot arm painting well: learn the stroke simulator from photos of the robot's own strokes.
 
 ### E. Learned stroke proposer (TinyML; the real "ML" upgrade)
-The planner runs on the PC, so a learned model can run there too:
+The simulator runs on the PC, so a learned model can run there too:
 - **Input:** a 32×32 patch of (reference − current canvas) in Lab, plus brush size.
 - **Output:** stroke parameters (start, 2 control points, end, width, palette index), or a direction field.
 - **Training:** use a *differentiable* stroke renderer (a tiny neural renderer as in **Learning to Paint**, Huang et al. ICCV 2019, or analytical as in **Stylized Neural Painting**, Zou et al. CVPR 2021, and **Paint Transformer**, Liu et al. ICCV 2021). Train with the same objective the greedy planner uses, then distill to a ~50–200 k-parameter CNN.
-- **Deploy:** call it from the planner (ONNX Runtime or a hand-written forward pass in C). Keep the greedy acceptance test on top: the network *proposes*, the simulator *verifies*. A bad prediction then costs nothing.
+- **Deploy:** call it from the simulator (ONNX Runtime or a hand-written forward pass in C). Keep the greedy acceptance test on top: the network *proposes*, the simulator *verifies*. A bad prediction then costs nothing.
 - Paint Transformer itself (~11 M parameters) also runs fine on a laptop; distill it only if you later move planning onto an embedded board.
 
 ### F. Style controls (fun)

@@ -398,7 +398,7 @@ int planner_layer(planner_t *planner, int layer, stroke_t *strokes, int max_stro
     {
         float last_end_x = 0;
         float last_end_y = 0;
-        for (;;)
+        while (1)
         {
             int nearest = -1;
             float nearest_dist_sq = FLT_MAX;

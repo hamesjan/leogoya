@@ -1,4 +1,4 @@
 # One variable per declaration line. Fix with:
-#   clang-tidy --fix <file.c> -- -Iplanner      (see scripts/format.sh)
+#   clang-tidy --fix <file.c> -- -Isim      (see scripts/format.sh)
 Checks: '-*,readability-isolate-declaration'
 WarningsAsErrors: ''

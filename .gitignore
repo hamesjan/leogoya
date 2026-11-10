@@ -1,9 +1,7 @@
 # ---------------------------------------------------------------- build output
-# build/firmware (STM32 .elf/.bin/.map) and build/planner (PC planner)
+# build/firmware (STM32 .elf/.bin/.map), build/sim (PC simulator + its out/ previews and G-code)
 build/
 
-# ---------------------------------------------------------------- planner output
-sim_out/
 # images converted with scripts/to_ppm.py (large, regenerate from the source jpg/png)
 *.ppm
 

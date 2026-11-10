@@ -1,7 +1,7 @@
 /*
- * hal_host.c - run the planner on a laptop.
+ * hal_host.c - run the simulator on a laptop.
  *
- *   ./build/planner/leogoya_planner [reference.ppm] [out_dir] [--calibrate]
+ *   ./build/sim/leogoya_sim [reference.ppm] [out_dir] [--calibrate]
  *   (any order, all optional)
  *
  * - The "camera" shows the reference (binary PPM, P6) lying on a grey table,
@@ -20,7 +20,7 @@
 #include <time.h>
 
 static const char *s_reference_path; /* NULL = use the synthetic scene */
-static const char *s_out_dir = "sim_out";
+static const char *s_out_dir = "build/sim/out";
 static FILE *s_gcode_file;
 static long s_gcode_lines;
 static bool s_calibrate;

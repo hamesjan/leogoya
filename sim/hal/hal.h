@@ -1,5 +1,5 @@
 /*
- * hal.h - the only interface between the planner and the outside world.
+ * hal.h - the only interface between the simulator and the outside world.
  * Implementation: hal/host/hal_host.c (runs on your laptop: reference image
  * from a file, G-code to a file). A serial port to the STM32 controller can be
  * added later as another hal_motion_send() backend.

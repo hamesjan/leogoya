@@ -2,7 +2,7 @@
  * palette.h - k-means color quantization (the "pick the paints" ML step).
  *
  * The robot cannot mix paint, so the reference is reduced to PALETTE_N colors.
- * The planner prints them as hex + a rough mixing hint; you mix those pots by hand.
+ * The simulator prints them as hex + a rough mixing hint; you mix those pots by hand.
  */
 #ifndef LEOGOYA_PALETTE_H
 #define LEOGOYA_PALETTE_H

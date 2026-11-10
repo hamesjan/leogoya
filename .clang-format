@@ -1,4 +1,4 @@
-# C style for firmware/ and planner/. Rules: Allman braces on every block,
+# C style for firmware/ and sim/. Rules: Allman braces on every block,
 # one variable per declaration (enforced by clang-tidy, see .clang-tidy). Apply with:
 #   clang-format -i $(git ls-files '*.c' '*.h')
 BasedOnStyle: LLVM

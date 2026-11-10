@@ -1,27 +1,28 @@
-# PC-side planner (photo -> palette -> strokes -> G-code). Runs on your laptop.
-#   make planner          -> build/planner/leogoya_planner
-#   make run              -> paint the synthetic scene into sim_out/
+# PC simulator: reference image -> palette -> strokes -> G-code + preview images.
+#   make sim              -> build/sim/leogoya_sim
+#   make run              -> paint the synthetic scene into build/sim/out/
 #   make run REF=x.ppm    -> paint your own reference (convert with scripts/to_ppm.py)
 # STM32 firmware lives in firmware/ (its own Makefile). scripts/build.sh drives both.
 
 CC      ?= cc
 CFLAGS  ?= -std=c11 -O2 -Wall -Wextra -Wno-unused-parameter
-SRC      = $(wildcard planner/*.c planner/app/*.c planner/vision/*.c planner/planning/*.c planner/motion/*.c) \
-           planner/hal/host/hal_host.c
-BIN      = build/planner/leogoya_planner
+SRC      = $(wildcard sim/*.c sim/app/*.c sim/vision/*.c sim/planning/*.c sim/motion/*.c) \
+           sim/hal/host/hal_host.c
+BIN      = build/sim/leogoya_sim
+OUT      = build/sim/out
 REF     ?=
 
-planner: $(BIN)
+sim: $(BIN)
 
-$(BIN): $(SRC) $(wildcard planner/*.h planner/*/*.h)
+$(BIN): $(SRC) $(wildcard sim/*.h sim/*/*.h)
 	@mkdir -p $(dir $(BIN))
-	$(CC) $(CFLAGS) -Iplanner $(SRC) -lm -o $@
+	$(CC) $(CFLAGS) -Isim $(SRC) -lm -o $@
 
 run: $(BIN)
-	./$(BIN) $(REF) sim_out
-	@command -v python3 >/dev/null && python3 scripts/preview.py sim_out || true
+	./$(BIN) $(REF) $(OUT)
+	@command -v python3 >/dev/null && python3 scripts/preview.py $(OUT) || true
 
 clean:
-	rm -rf build/planner sim_out
+	rm -rf build/sim
 
-.PHONY: planner run clean
+.PHONY: sim run clean

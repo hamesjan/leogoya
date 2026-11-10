@@ -2,7 +2,7 @@
 """Talk to the STM32 controller over its serial port.
 
     python3 scripts/send.py                       interactive: type commands, see replies
-    python3 scripts/send.py sim_out/painting.gcode   stream a file, one line per "ok"
+    python3 scripts/send.py build/sim/out/painting.gcode   stream a file, one line per "ok"
     python3 scripts/send.py -p /dev/cu.usbmodem1103 ...
 
 Needs pyserial:  python3 -m pip install pyserial

@@ -2,7 +2,7 @@
 """Convert the simulator's .ppm dumps to .png and build a side-by-side
 montage (reference | layer0 | layer1 | ...). Standard library only.
 
-    python3 scripts/preview.py sim_out
+    python3 scripts/preview.py build/sim/out
 """
 import os
 import struct
@@ -69,4 +69,4 @@ def main(d):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "sim_out")
+    main(sys.argv[1] if len(sys.argv) > 1 else "build/sim/out")

@@ -82,7 +82,7 @@ static inline void system_reset(void)
 {
     __asm volatile("dsb" ::: "memory");
     SCB_AIRCR = (0x05FAu << 16) | (1u << 2); /* VECTKEY | SYSRESETREQ */
-    for (;;)
+    while (1)
     {
     }
 }

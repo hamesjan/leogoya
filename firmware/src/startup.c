@@ -65,7 +65,7 @@ void Reset_Handler(void)
     }
 
     main();
-    for (;;)
+    while (1)
     {
     }
 }
@@ -73,14 +73,14 @@ void Reset_Handler(void)
 /* Unused vectors land here. Stuck in a loop = unexpected interrupt; attach a debugger. */
 void Default_Handler(void)
 {
-    for (;;)
+    while (1)
     {
     }
 }
 
 void HardFault_Handler(void)
 {
-    for (;;)
+    while (1)
     {
     }
 }

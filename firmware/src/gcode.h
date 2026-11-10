@@ -1,9 +1,3 @@
-/*
- * gcode.h - the subset of G-code the planner (planner/motion) emits.
- *
- * No motors are driven yet: moves update a commanded position so the protocol
- * can be tested end to end. Step generation plugs in at gcode_move().
- */
 #ifndef GCODE_H
 #define GCODE_H
 

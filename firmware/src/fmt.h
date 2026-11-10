@@ -1,4 +1,3 @@
-/* fmt.h - tiny output/parse helpers (no libc on the target). */
 #ifndef FMT_H
 #define FMT_H
 

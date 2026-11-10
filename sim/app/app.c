@@ -25,7 +25,7 @@ static void fatal(const char *reason)
     exit(1);
 }
 
-/* Write a preview image (sim_out/<name>.ppm on the host). */
+/* Write a preview image (build/sim/out/<name>.ppm on the host). */
 static void dump(const char *name, const lab_image_t *image)
 {
     uint8_t *rgb = malloc((size_t)image->width * image->height * 3);
@@ -127,7 +127,7 @@ static void calibrate_brushes(brush_set_t *brushes)
 void app_run(void)
 {
     hal_init();
-    hal_log("leogoya planner\n");
+    hal_log("leogoya sim\n");
 
     if (!hal_camera_init())
     {
