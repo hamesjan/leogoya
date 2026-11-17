@@ -1,51 +1,25 @@
-# ---------------------------------------------------------------- build output
-# build/firmware (STM32 .elf/.bin/.map), build/sim (PC simulator + its out/ previews and G-code)
-build/
-
-# images converted with scripts/to_ppm.py (large, regenerate from the source jpg/png)
-*.ppm
-
-# ---------------------------------------------------------------- C tooling
-*.o
-*.a
-*.d
-*.elf
-*.bin
-*.map
-# clangd / IDE indexing
-.cache/
-compile_commands.json
-.clangd
-
-# ---------------------------------------------------------------- 3D printing
-# slicer output is machine-specific; track the STL/STEP/3MF sources instead
-*.gcode
-*.bgcode
-*.ufp
-
-# ---------------------------------------------------------------- Python tools
+# Python
 __pycache__/
 *.py[cod]
 .venv/
-venv/
 
-# ---------------------------------------------------------------- spreadsheets / docs
-# Excel / LibreOffice lock files while hardware/leogoya_BOM.xlsx is open
-~$*
-.~lock.*#
+# 3D printing: slicer output is machine-specific; track STL/STEP/3MF sources
+*.gcode
+*.bgcode
 
-# ---------------------------------------------------------------- editors / OS
+# Editors / OS
 .vscode/*
 !.vscode/settings.json
-!.vscode/extensions.json
 .idea/
 *.swp
-*~
 .DS_Store
-Thumbs.db
 
-# ---------------------------------------------------------------- secrets
-# Wi-Fi credentials etc. if you add network features later
-secrets.h
-*.env
+# Secrets
 .env
+*.env
+
+# Generated plans and plots (build/out/)
+build/
+
+# Local editor workspace
+leogoya_lerobot.code-workspace

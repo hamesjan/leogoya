@@ -1,38 +1,31 @@
 # Leogoya
 
-## Build
+Painting robot on an SO-101 arm, using [LeRobot](https://github.com/huggingface/lerobot) for motors, calibration and kinematics.
+
+## Setup
+
+Expects the LeRobot clone at `../lerobot` (see `[tool.uv.sources]` in `pyproject.toml`).
 
 ```sh
-brew install arm-none-eabi-gcc arm-none-eabi-binutils   # once
-scripts/build.sh            # firmware + simulator
-scripts/build.sh flash      # flash the Nucleo (copies the .bin to its USB drive)
+scripts/dev.sh build    # or: uv sync
+uv run lerobot-find-port
 ```
 
-## Talk to the board
+## Layout
 
-```sh
-python3 -m pip install pyserial
-python3 scripts/send.py                          # interactive
-# or: screen /dev/cu.usbmodem* 115200, then send ECHO ON so you can see what you type
-```
+- `hardware/` — SO-101 leader/follower STLs and STEP assembly
 
-```
-> PING
-pong
-ok
-> G1 X100 Y50 F3000
-ok
-> M114
-X:100.000 Y:50.000 Z:0.000 A:0.000 F:3000 ABS
-ok
-```
-
-## Paint (simulator → board)
+## Plan a square (no hardware needed)
 
 ```sh
-scripts/build.sh run                          # plan the synthetic test scene → build/sim/out/
-python3 scripts/to_ppm.py photo.jpg ref.ppm   # your own reference (needs Pillow)
-scripts/build.sh run ref.ppm
-open build/sim/out/montage.png                # reference | after each layer
-python3 scripts/send.py build/sim/out/painting.gcode
+uv run python -m leogoya.plan_square                      # 10 cm square, 20 cm in front of the base
+uv run python -m leogoya.plan_square --brush-length 0.05  # bristle tip 5 cm past the jaw tips
+open build/out/square.png
 ```
+
+Plans brush-tip waypoints on the canvas, solves IK with the brush vertical, re-checks every
+point with forward kinematics and writes `build/out/square_joints.csv`, whose columns are SO101Follower action keys
+(degrees, sampled at `--fps`). Frame: origin at the robot base, +x forward, +y left, +z up, table at z = 0.
+
+- `src/leogoya/arm.py` — `BrushArm`: brush-tip position → joint angles, and back
+- `hardware/so101_urdf/` — SO-101 URDF + meshes from TheRobotStudio/SO-ARM100 (Apache-2.0, see `SOURCE`)

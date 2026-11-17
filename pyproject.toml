@@ -1,0 +1,24 @@
+[project]
+name = "leogoya"
+version = "0.1.0"
+description = "Painting robot built on an SO-101 arm and LeRobot"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # feetech: SO-101 servo bus. kinematics: placo IK/FK on the SO-101 URDF.
+    # Add "core_scripts" later for lerobot-record / teleoperate with cameras.
+    "lerobot[feetech,kinematics]",
+]
+
+[dependency-groups]
+dev = ["matplotlib"]  # path plots; installed by default with `uv sync`
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+# Editable local clone: edits in ~/projects/lerobot apply here immediately.
+# For reproducible builds, swap for a pinned commit:
+#   lerobot = { git = "https://github.com/huggingface/lerobot", rev = "<sha>" }
+lerobot = { path = "../lerobot", editable = true }
